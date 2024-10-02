@@ -1,4 +1,5 @@
 const router = require('express').Router()
+const { json } = require('express')
 const path = require('path')
 
 // Requiring Ltijs
@@ -7,12 +8,73 @@ const lti = require('ltijs').Provider
 // Grading route
 router.post('/grade', async (req, res) => {
   try {
+    const api_token = JSON.parse(process.env.USER_CODEFUN)
+    let id_token = Math.floor(Math.random() * api_token.length)
+    const code = req.body.code
     const idtoken = res.locals.token // IdToken
-    const score = req.body.grade // User numeric score sent in the body
+    const { custom } = idtoken.platformContext
+    //create a new json object to store the code
+    const urlEncodedData = new URLSearchParams({
+      code: code,
+      problem: custom.problem,
+      language: custom.language
+    }).toString();
+    
+    //fetch token from codefun/api/auth with api_token[id_token][0] and api_token[id_token][1] as username and password x-www-form-urlencoded
+    const urlEncodedUser = new URLSearchParams({
+      username: api_token[id_token][0],
+      password: api_token[id_token][1]
+    }).toString();
+
+    const token = await fetch("https://codefun.vn/api/auth", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: urlEncodedUser
+    }); 
+
+    const tokenData = await token.json();
+
+    const submission_id = await fetch("https://codefun.vn/api/submit", {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${tokenData.data}`
+      },
+      body: urlEncodedData
+    });
+
+    if (!submission_id.ok) {
+      console.log(submission_id.json())
+      throw new Error('You have to wait 1 minute and 30 seconds before submitting another code');
+    }
+
+    const data = await submission_id.json();
+    //fetching the result of the submission
+    let result = await fetch(`https://codefun.vn/api/submissions/${data.data}`, {
+      method: 'GET',
+      headers: {
+          'Content-Type': 'application/json'
+      }
+    });
+    result = await result.json();
+
+    //if result.data.result is equal to Q retry the api call every 0.5 seconds
+    while (result.data.result === 'Q') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const submission = await fetch(`https://codefun.vn/api/submissions/${data.data}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+      });
+      result = await submission.json();
+    }
     // Creating Grade object
     const gradeObj = {
       userId: idtoken.user,
-      scoreGiven: score,
+      scoreGiven: result.data.score,
       scoreMaximum: 100,
       activityProgress: 'Completed',
       gradingProgress: 'FullyGraded'
@@ -36,13 +98,12 @@ router.post('/grade', async (req, res) => {
         lineItemId = lineItem.id
       } else lineItemId = lineItems[0].id
     }
-
     // Sending Grade
     const responseGrade = await lti.Grade.submitScore(idtoken, lineItemId, gradeObj)
-    return res.send(responseGrade)
+    return res.send(result.data)
   } catch (err) {
     console.log(err.message)
-    return res.status(500).send({ err: err.message })
+    return res.status(500).send( err.message )
   }
 })
 
@@ -62,15 +123,25 @@ router.get('/members', async (req, res) => {
 router.post('/deeplink', async (req, res) => {
   try {
     const resource = req.body
+    //fetch to api to validate the problem id, if 4xx or 5xx return error
+    const response = await fetch(`https://codefun.vn/api/problems/${resource.problem}`, {
+      method: 'GET',
+      headers: {
+          'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Invalid Problem ID`);
+    }
 
-    const items = {
+    const items = [{
       type: 'ltiResourceLink',
       title: 'Ltijs Demo',
       custom: {
-        name: resource.name,
-        value: resource.value
+        problem: resource.problem,
+        language: resource.language
       }
-    }
+    }]
 
     const form = await lti.DeepLinking.createDeepLinkingForm(res.locals.token, items, { message: 'Successfully Registered' })
     if (form) return res.send(form)

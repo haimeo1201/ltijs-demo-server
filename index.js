@@ -7,15 +7,16 @@ const lti = require('ltijs').Provider
 // Setup
 lti.setup(process.env.LTI_KEY,
   {
-    url: 'mongodb://' + process.env.DB_HOST + '/' + process.env.DB_NAME + '?authSource=admin',
+    url: 'mongodb://' + process.env.DB_HOST + '/' + process.env.DB_NAME + '?authSource=' + process.env.DB_AUTHSOURCE,
     connection: { user: process.env.DB_USER, pass: process.env.DB_PASS }
   }, {
     staticPath: path.join(__dirname, './public'), // Path to static files
     cookies: {
-      secure: false, // Set secure to true if the testing platform is in a different domain and https is being used
-      sameSite: '' // Set sameSite to 'None' if the testing platform is in a different domain and https is being used
+      secure: true, // Set secure to true if the testing platform is in a different domain and https is being used
+      sameSite: 'None' // Set sameSite to 'None' if the testing platform is in a different domain and https is being used
     },
-    devMode: true // Set DevMode to true if the testing platform is in a different domain and https is not being used
+    devMode: false, // Set DevMode to true if the testing platform is in a different domain and https is not being used
+    cors: false // Set CORS to true to enable CORS
   })
 
 // When receiving successful LTI launch redirects to app
@@ -38,14 +39,14 @@ const setup = async () => {
   /**
    * Register platform
    */
-  /* await lti.registerPlatform({
-    url: 'http://localhost/moodle',
+  await lti.registerPlatform({
+    url: process.env.ISS,
     name: 'Platform',
-    clientId: 'CLIENTID',
-    authenticationEndpoint: 'http://localhost/moodle/mod/lti/auth.php',
-    accesstokenEndpoint: 'http://localhost/moodle/mod/lti/token.php',
-    authConfig: { method: 'JWK_SET', key: 'http://localhost/moodle/mod/lti/certs.php' }
-  }) */
+    clientId: process.env.CLIENT_ID,
+    authenticationEndpoint: process.env.PLATFORM_URL + '/api/lti/authorize_redirect',
+    accesstokenEndpoint: process.env.PLATFORM_URL + '/login/oauth2/token',
+    authConfig: { method: 'JWK_SET', key:  process.env.PLATFORM_URL + '/api/lti/security/jwks'}
+  })
 }
 
 setup()

@@ -17,18 +17,19 @@
 - Setup `.env` file with the relevant variables
 
   ```
-  DB_HOST=localhost
-  DB_NAME=ltidb
-  DB_USER=user
-  DB_PASS=pass
-  LTI_KEY=LTIKEY
+  DB_HOST=
+  DB_AUTHSOURCE=
+  DB_NAME=
+  DB_USER=
+  DB_PASS=
+  LTI_KEY=
+  NODE_TLS_REJECT_UNAUTHORIZED=0
+  PORT=8080
+  CLIENT_ID=
+  ISS=
+  PLATFORM_URL=
   ```
-  *DB_USER and DB_PASS are not required*
 
 - Run `npm install`
 
 - Run `npm start` 
-
-### React application
-
- The code for the react application used with this project can be found [here](https://github.com/Cvmcosta/ltijs-demo-client).
