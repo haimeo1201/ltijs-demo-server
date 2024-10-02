@@ -26,7 +26,7 @@ router.post('/grade', async (req, res) => {
       password: api_token[id_token][1]
     }).toString();
 
-    const token = await fetch("https://codefun.vn/api/auth", {
+    const token = await fetch( process.env.CODEFUN_API_URL + "/auth", {
       method: 'POST',
       headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -36,7 +36,7 @@ router.post('/grade', async (req, res) => {
 
     const tokenData = await token.json();
 
-    const submission_id = await fetch("https://codefun.vn/api/submit", {
+    const submission_id = await fetch(process.env.CODEFUN_API_URL + "/submit", {
       method: 'POST',
       headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -52,7 +52,7 @@ router.post('/grade', async (req, res) => {
 
     const data = await submission_id.json();
     //fetching the result of the submission
-    let result = await fetch(`https://codefun.vn/api/submissions/${data.data}`, {
+    let result = await fetch(process.env.CODEFUN_API_URL + `/submissions/${data.data}`, {
       method: 'GET',
       headers: {
           'Content-Type': 'application/json'
@@ -63,7 +63,7 @@ router.post('/grade', async (req, res) => {
     //if result.data.result is equal to Q retry the api call every 0.5 seconds
     while (result.data.result === 'Q') {
       await new Promise(resolve => setTimeout(resolve, 500));
-      const submission = await fetch(`https://codefun.vn/api/submissions/${data.data}`, {
+      const submission = await fetch(process.env.CODEFUN_API_URL + `/submissions/${data.data}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -124,7 +124,7 @@ router.post('/deeplink', async (req, res) => {
   try {
     const resource = req.body
     //fetch to api to validate the problem id, if 4xx or 5xx return error
-    const response = await fetch(`https://codefun.vn/api/problems/${resource.problem}`, {
+    const response = await fetch(process.env.CODEFUN_API_URL + `/problems/${resource.problem}`, {
       method: 'GET',
       headers: {
           'Content-Type': 'application/json'
