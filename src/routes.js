@@ -136,7 +136,7 @@ router.post('/deeplink', async (req, res) => {
 
     const items = [{
       type: 'ltiResourceLink',
-      title: 'Ltijs Demo',
+      title: resource.title,
       custom: {
         problem: resource.problem,
         language: resource.language
